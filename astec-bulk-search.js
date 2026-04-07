@@ -3,7 +3,7 @@ if(document.getElementById('abp')){document.getElementById('abp').style.display=
 
 var R=[];
 var globalFactor=1.3;
-var globalUtilidad=0.8;
+var globalUtilidad=0.7;
 var selectedRows=new Set();
 
 var s=document.createElement('style');
@@ -62,8 +62,8 @@ p.innerHTML=
 '<span>Importaciones (def. 1.3)</span>'+
 '&nbsp;&nbsp;&nbsp;'+
 '<label>Utilidad:</label>'+
-'<input id="abp-guv" type="number" step="0.01" min="0.01" max="1" value="0.8">'+
-'<span>Margen (def. 0.8 = 20%)</span>'+
+'<input id="abp-guv" type="number" step="0.01" min="0.01" max="1" value="0.7">'+
+'<span>Margen (def. 0.7 = 30%)</span>'+
 '</div>'+
 '<div id="abp-tw"><table id="abp-t"><thead><tr>'+
 '<th><input type="checkbox" id="abp-chkall" title="Seleccionar todo"></th>'+
