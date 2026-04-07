@@ -3,7 +3,7 @@ if(document.getElementById('abp')){document.getElementById('abp').style.display=
 
 var R=[];
 var globalFactor=1.3;
-var globalUtilidad=0.7;
+var globalUtilidad=0.8;
 var selectedRows=new Set();
 
 var s=document.createElement('style');
