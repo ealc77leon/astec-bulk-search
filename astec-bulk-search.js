@@ -4,6 +4,7 @@ if(document.getElementById('abp')){document.getElementById('abp').style.display=
 var R=[];
 var globalFactor=1.3;
 var globalUtilidad=0.7;
+var globalTRM=4000;
 var selectedRows=new Set();
 
 var s=document.createElement('style');
@@ -28,6 +29,7 @@ s.textContent=
 '#abp-gf{display:flex;gap:16px;align-items:center;flex-wrap:wrap;padding:7px 10px;background:#0d1215;border:1px solid #2a3038}'+
 '#abp-gf label{color:#94a3b8;font-size:10px;letter-spacing:1px;text-transform:uppercase}'+
 '#abp-gf input{background:#161a1c;border:1px solid #2a3038;color:#e2e8f0;padding:4px 8px;font-size:12px;width:72px;font-family:monospace;outline:none}'+
+'#abp-gf input.wide{width:90px}'+
 '#abp-gf input:focus{border-color:#f97316}'+
 '#abp-gf span{color:#64748b;font-size:10px}'+
 '#abp-tw{flex:1;overflow:auto;border:1px solid #2a3038}'+
@@ -64,6 +66,10 @@ p.innerHTML=
 '<label>Utilidad:</label>'+
 '<input id="abp-guv" type="number" step="0.01" min="0.01" max="1" value="0.7">'+
 '<span>Margen (def. 0.7 = 30%)</span>'+
+'&nbsp;&nbsp;&nbsp;'+
+'<label>TRM:</label>'+
+'<input id="abp-gtrm" type="number" step="1" min="1" value="4000" class="wide">'+
+'<span>COP/USD (def. 4000)</span>'+
 '</div>'+
 '<div id="abp-tw"><table id="abp-t"><thead><tr>'+
 '<th><input type="checkbox" id="abp-chkall" title="Seleccionar todo"></th>'+
@@ -79,6 +85,8 @@ p.innerHTML=
 '<th>Factor</th>'+
 '<th>Utilidad</th>'+
 '<th>PVP</th>'+
+'<th>TRM</th>'+
+'<th>PVP COP</th>'+
 '<th>Weight</th>'+
 '</tr></thead><tbody id="abp-tb"></tbody></table></div>'+
 '</div>';
@@ -114,6 +122,15 @@ function calcPVP(price,factor,utilidad){
   var f=parseFloat(factor);var u=parseFloat(utilidad);
   if(isNaN(dnN)||isNaN(f)||isNaN(u)||u===0)return '—';
   return Math.round(dnN*f/u*100)/100;
+}
+
+function calcPVPCOP(price,factor,utilidad,trm){
+  var pvp=calcPVP(price,factor,utilidad);
+  if(pvp===null||pvp===undefined||pvp===''||pvp==='—')return '—';
+  var pvpN=typeof pvp==='number'?pvp:parseFloat(String(pvp).replace(/,/g,''));
+  var t=parseFloat(trm);
+  if(isNaN(pvpN)||isNaN(t))return '—';
+  return Math.round(pvpN*t);
 }
 
 function getTableText(){return Array.from(document.querySelectorAll('.dt-scroll-body tbody tr')).map(function(r){return r.innerText.trim();}).join('|');}
@@ -239,6 +256,28 @@ function renderTable(){
       tdPVP.textContent=fmtNum(calcPVP(d.price,d.factor,d.utilidad));
       tr.appendChild(tdPVP);
 
+      // TRM (editable)
+      var tdT=document.createElement('td');
+      var inpT=document.createElement('input');
+      inpT.type='number';inpT.step='1';inpT.min='1';
+      inpT.style.width='72px';
+      inpT.className='abp-ei'+(d.isTRMOverridden?' ovr':'');
+      inpT.value=d.trm;inpT.title=d.isTRMOverridden?'Modificado manualmente':'Valor global';
+      inpT.onchange=function(){
+        var val=parseFloat(this.value);if(isNaN(val)||val<=0)return;
+        R[idx].trm=val;R[idx].isTRMOverridden=true;
+        this.className='abp-ei ovr';this.title='Modificado manualmente';
+        refreshPVP(idx);
+      };
+      tdT.appendChild(inpT);tr.appendChild(tdT);
+
+      // PVP COP
+      var tdCOP=document.createElement('td');
+      tdCOP.style.color='#fbbf24';tdCOP.style.fontWeight='700';
+      tdCOP.dataset.pvpcopIdx=idx;
+      tdCOP.textContent=fmtNum(calcPVPCOP(d.price,d.factor,d.utilidad,d.trm));
+      tr.appendChild(tdCOP);
+
       // Weight
       var tdW=document.createElement('td');tdW.style.color='#94a3b8';tdW.textContent=fmtNum(d.weight);tr.appendChild(tdW);
 
@@ -250,6 +289,8 @@ function renderTable(){
 function refreshPVP(idx){
   var td=document.querySelector('[data-pvp-idx="'+idx+'"]');
   if(td)td.textContent=fmtNum(calcPVP(R[idx].price,R[idx].factor,R[idx].utilidad));
+  var td2=document.querySelector('[data-pvpcop-idx="'+idx+'"]');
+  if(td2)td2.textContent=fmtNum(calcPVPCOP(R[idx].price,R[idx].factor,R[idx].utilidad,R[idx].trm));
 }
 function updateDelBtn(){var btn=document.getElementById('abp-del');if(btn)btn.style.display=selectedRows.size>0?'inline-block':'none';}
 function updateSelectAll(){
@@ -264,7 +305,7 @@ function addRows(num,ref,matches){
   if(matches.length===0){
     R.push({searched:ref,_num:num,_isVar:false,_noResult:true,_error:false,
       partnum:'',line:'',desc:'Sin resultados',qty:'',price:'',currency:'',weight:'',
-      factor:globalFactor,utilidad:globalUtilidad,isFactorOverridden:false,isUtilidadOverridden:false,_refExtra:''});
+      factor:globalFactor,utilidad:globalUtilidad,trm:globalTRM,isFactorOverridden:false,isUtilidadOverridden:false,isTRMOverridden:false,_refExtra:''});
     return;
   }
   var isMulti=matches.length>1;
@@ -275,7 +316,7 @@ function addRows(num,ref,matches){
       _refExtra:j===0&&isMulti?' <span style="color:#94a3b8;font-size:9px">('+matches.length+')</span>':'',
       partnum:d.partnum,line:d.line,desc:d.desc,
       qty:d.qty,price:toNum(d.price),currency:d.currency,weight:toNum(d.weight),
-      factor:globalFactor,utilidad:globalUtilidad,isFactorOverridden:false,isUtilidadOverridden:false
+      factor:globalFactor,utilidad:globalUtilidad,trm:globalTRM,isFactorOverridden:false,isUtilidadOverridden:false,isTRMOverridden:false
     });
   }
 }
@@ -345,6 +386,21 @@ document.getElementById('abp-guv').oninput=function(){
   });
 };
 
+// TRM global (en tiempo real con oninput)
+document.getElementById('abp-gtrm').oninput=function(){
+  var val=parseFloat(this.value);if(isNaN(val)||val<=0)return;
+  globalTRM=val;
+  document.querySelectorAll('#abp-tb tr[data-idx]').forEach(function(row){
+    var idx=parseInt(row.dataset.idx);
+    if(!isNaN(idx)&&R[idx]&&!R[idx].isTRMOverridden){
+      R[idx].trm=globalTRM;
+      var inp=row.querySelectorAll('.abp-ei')[2];
+      if(inp)inp.value=globalTRM;
+      refreshPVP(idx);
+    }
+  });
+};
+
 // Búsqueda principal
 async function run(){
   var btn=document.getElementById('abp-go');
@@ -373,7 +429,7 @@ async function run(){
     }catch(e){
       R.push({searched:ref,_num:i+1,_isVar:false,_noResult:false,_error:true,desc:e.message,
         partnum:'',line:'',qty:'',price:'',currency:'',weight:'',_refExtra:'',
-        factor:globalFactor,utilidad:globalUtilidad,isFactorOverridden:false,isUtilidadOverridden:false});
+        factor:globalFactor,utilidad:globalUtilidad,trm:globalTRM,isFactorOverridden:false,isUtilidadOverridden:false,isTRMOverridden:false});
       renderTable();
     }
     if(i<parts.length-1)await sl(200);
@@ -387,12 +443,13 @@ document.getElementById('abp-go').onclick=run;
 // Exportar CSV
 document.getElementById('abp-csv').onclick=function(){
   var sep=';';
-  var header=[asTextCell('Buscado'),asTextCell('Part Number'),csvCell('Product Line'),csvCell('Description'),csvCell('Qty On Hand'),csvCell('List Price'),csvCell('Currency'),csvCell('Dealer Net'),csvCell('Factor'),csvCell('Utilidad'),csvCell('PVP'),csvCell('Weight')];
+  var header=[asTextCell('Buscado'),asTextCell('Part Number'),csvCell('Product Line'),csvCell('Description'),csvCell('Qty On Hand'),csvCell('List Price'),csvCell('Currency'),csvCell('Dealer Net'),csvCell('Factor'),csvCell('Utilidad'),csvCell('PVP'),csvCell('TRM'),csvCell('PVP COP'),csvCell('Weight')];
   function numCell(v){return typeof v==='number'?String(v).replace('.',','):csvCell(v||'');}
   var rows=R.filter(function(r){return!r._noResult&&!r._error&&r.partnum;}).map(function(r){
     var pvp=calcPVP(r.price,r.factor,r.utilidad);
     var dn=calcDealerNet(r.price);
-    return[asTextCell(r.searched||''),asTextCell(r.partnum||''),csvCell(r.line||''),csvCell(r.desc||''),numCell(r.qty),numCell(r.price),csvCell(r.currency||''),numCell(dn),String(r.factor).replace('.',','),String(r.utilidad).replace('.',','),numCell(pvp),numCell(r.weight)];
+    var pvpcop=calcPVPCOP(r.price,r.factor,r.utilidad,r.trm);
+    return[asTextCell(r.searched||''),asTextCell(r.partnum||''),csvCell(r.line||''),csvCell(r.desc||''),numCell(r.qty),numCell(r.price),csvCell(r.currency||''),numCell(dn),String(r.factor).replace('.',','),String(r.utilidad).replace('.',','),numCell(pvp),String(r.trm).replace('.',','),numCell(pvpcop),numCell(r.weight)];
   });
   var csv='sep=;\r\n'+[header].concat(rows).map(function(r){return r.join(sep);}).join('\r\n');
   var b=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
