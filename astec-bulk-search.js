@@ -2,7 +2,7 @@ javascript: (function () {
   if (document.getElementById('abp')) { document.getElementById('abp').style.display = 'flex'; return; }
 
   // ── PEGAR AQUI LA URL CSV DEL GOOGLE SHEET (publicado como CSV) ───────────
-  var SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/SHEET_ID/export?format=csv&gid=0';
+  var SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vREWNCDYnqcRmQvQ8VGdVZBEglx4PlahEbj2OSz5H3NponSyFBX-M_S4MhEK_HQhNZDqcZZQ_Dl38WF/pub?gid=0&single=true&output=csv';
   // ─────────────────────────────────────────────────────────────────────────────
 
   var R = [];
