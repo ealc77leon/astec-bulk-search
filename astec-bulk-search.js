@@ -153,7 +153,11 @@ javascript: (function () {
       var resp = await fetch(SHEET_CSV_URL + '&cachebust=' + Date.now());
       if (!resp.ok) throw new Error('HTTP ' + resp.status);
       var text = await resp.text();
+      console.log("CSV RAW (primeros 300 chars):", text.substring(0,300));
       var rows = parseCSV(text);
+      console.log("Total filas:", rows.length);
+      console.log("Fila 1 (headers):", rows[0]);
+      console.log("Fila 2 (primer dato):", rows[1]);
       cotDB = {};
       if (rows.length < 2) {
         if (statusEl) { statusEl.textContent = '📋 DB vacía'; statusEl.style.color = '#64748b'; }
@@ -163,6 +167,10 @@ javascript: (function () {
       //         Expected Qty(5) Unit Price(6) Ext. Price(7) Lead Time(8) Notes(9)
       for (var i = 1; i < rows.length; i++) {
         var r = rows[i];
+        if (i === 1) {
+          console.log("Fila analizada:", r);
+          console.log("Part detectado (r[3]):", r[3]);
+        }
         if (r.length < 4) continue;
         var part = String(r[3] || '').trim().toUpperCase();
         if (!part) continue;
