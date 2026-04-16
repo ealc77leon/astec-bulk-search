@@ -305,12 +305,16 @@ function renderTable(){
       else{tdRef.style.color='#f97316';tdRef.style.fontWeight='600';tdRef.innerHTML=escHtml(d.searched||'')+(d._refExtra||'');}
       tr.appendChild(tdRef);
 
-      // Part Number — si no result o error, colSpan y salir
+      // Part Number — si no result o error
       var tdPN=document.createElement('td');
       tdPN.style.fontWeight='600';
       if(d._noResult){
-        tdPN.style.color='#ef4444';tdPN.style.fontStyle='italic';tdPN.colSpan=11;tdPN.textContent='Sin resultados';
-        tr.appendChild(tdPN);document.getElementById('abp-tb').appendChild(tr);return;
+        tdPN.style.color='#ef4444';tdPN.style.fontStyle='italic';tdPN.colSpan=11;tdPN.textContent='Sin resultados en web';
+        tr.appendChild(tdPN);
+        document.getElementById('abp-tb').appendChild(tr);
+        // ── Buscar igual en cotDB aunque no esté en la web ──
+        renderCotRows(d.searched, d.searched);
+        return;
       }
       if(d._error){
         tdPN.style.color='#ef4444';tdPN.style.fontStyle='italic';tdPN.colSpan=11;tdPN.textContent='Error: '+d.desc;
@@ -398,83 +402,70 @@ function renderTable(){
 
       // ── Cotizaciones previas (sub-filas) ──────────────────────────────────
       if(!d._noResult&&!d._error&&d.partnum){
-        var key=String(d.partnum).toUpperCase();
-        var cots=cotDB[key]||[];
-        // También buscar por la referencia buscada (por si el part number difiere levemente)
-        if(!cots.length&&d.searched){
-          var key2=String(d.searched).toUpperCase();
-          cots=cotDB[key2]||[];
-        }
-        // Mostrar solo la más reciente por defecto (ordenar por fecha desc)
-        if(cots.length){
-          var sorted=cots.slice().sort(function(a,b){return b.fecha.localeCompare(a.fecha);});
-          for(var ci=0;ci<sorted.length;ci++){
-            (function(cot,cidx){
-              var ctr=document.createElement('tr');
-              ctr.className='abp-cot';
-
-              // col 1: checkbox vacío
-              var ctdChk=document.createElement('td');ctr.appendChild(ctdChk);
-              // col 2: ícono
-              var ctdN=document.createElement('td');
-              ctdN.innerHTML='<span title="Cotización previa ASTEC" style="font-size:13px">📋</span>';
-              ctr.appendChild(ctdN);
-              // col 3: label
-              var ctdLbl=document.createElement('td');
-              ctdLbl.innerHTML='<span class="abp-cot-lbl">Cotiz. previa</span>';
-              ctr.appendChild(ctdLbl);
-              // col 4: Quote#
-              var ctdQ=document.createElement('td');
-              ctdQ.innerHTML='<span class="abp-cot-q">'+escHtml(cot.quote)+'</span>';
-              ctr.appendChild(ctdQ);
-              // col 5: fecha
-              var ctdF=document.createElement('td');
-              ctdF.innerHTML='<span class="abp-cot-d">'+escHtml(cot.fecha)+'</span>';
-              ctr.appendChild(ctdF);
-              // col 6: descripción
-              var ctdDesc=document.createElement('td');
-              ctdDesc.style.whiteSpace='normal';ctdDesc.style.maxWidth='220px';
-              ctdDesc.innerHTML='<span class="abp-cot-d">'+escHtml(cot.desc||'—')+'</span>';
-              ctr.appendChild(ctdDesc);
-              // col 7: qty
-              var ctdQty=document.createElement('td');
-              ctdQty.innerHTML='<span class="abp-cot-d">'+escHtml(cot.qty||'—')+'</span>';
-              ctr.appendChild(ctdQty);
-              // col 8: unit price
-              var ctdP=document.createElement('td');
-              ctdP.innerHTML='<span class="abp-cot-p">'+escHtml(cot.price||'—')+'</span>';
-              ctr.appendChild(ctdP);
-              // col 9: currency (vacío — heredado)
-              var ctdCur2=document.createElement('td');ctr.appendChild(ctdCur2);
-              // col 10: ext price
-              var ctdExt=document.createElement('td');
-              ctdExt.innerHTML='<span class="abp-cot-d">Ext: '+escHtml(cot.extPrice||'—')+'</span>';
-              ctr.appendChild(ctdExt);
-              // col 11: lead time (span 2: Factor + Utilidad)
-              var ctdLT=document.createElement('td');ctdLT.colSpan=2;
-              ctdLT.innerHTML='<span class="abp-cot-lt">⏱ '+escHtml(cot.leadTime||'—')+'</span>';
-              ctr.appendChild(ctdLT);
-              // col 13 (PVP): vacío
-              var ctdPvp2=document.createElement('td');ctr.appendChild(ctdPvp2);
-              // col 14 (TRM): vacío
-              var ctdTrm2=document.createElement('td');ctr.appendChild(ctdTrm2);
-              // col 15 (PVP COP): vacío
-              var ctdCop2=document.createElement('td');ctr.appendChild(ctdCop2);
-              // col 16: Notes (editable)
-              var ctdNotes=document.createElement('td');
-              var inpNotes=document.createElement('input');
-              inpNotes.type='text';inpNotes.className='abp-ni';
-              inpNotes.value=cot.notes;inpNotes.placeholder='Notas...';
-              inpNotes.title='Nota local (solo esta sesión)';
-              inpNotes.onchange=function(){cot.notes=this.value;};
-              ctdNotes.appendChild(inpNotes);ctr.appendChild(ctdNotes);
-
-              document.getElementById('abp-tb').appendChild(ctr);
-            })(sorted[ci],ci);
-          }
-        }
+        renderCotRows(d.partnum, d.searched);
       }
     })(i);
+  }
+}
+
+function renderCotRows(partnum, searched){
+  var key=String(partnum||searched||'').toUpperCase();
+  var cots=cotDB[key]||[];
+  // Fallback: buscar por referencia buscada si difiere del part number
+  if(!cots.length&&searched&&searched.toUpperCase()!==key){
+    cots=cotDB[searched.toUpperCase()]||[];
+  }
+  if(!cots.length) return;
+
+  var sorted=cots.slice().sort(function(a,b){return b.fecha.localeCompare(a.fecha);});
+  for(var ci=0;ci<sorted.length;ci++){
+    (function(cot){
+      var ctr=document.createElement('tr');
+      ctr.className='abp-cot';
+
+      var ctdChk=document.createElement('td');ctr.appendChild(ctdChk);
+      var ctdN=document.createElement('td');
+      ctdN.innerHTML='<span title="Cotización previa ASTEC" style="font-size:13px">📋</span>';
+      ctr.appendChild(ctdN);
+      var ctdLbl=document.createElement('td');
+      ctdLbl.innerHTML='<span class="abp-cot-lbl">Cotiz. previa</span>';
+      ctr.appendChild(ctdLbl);
+      var ctdQ=document.createElement('td');
+      ctdQ.innerHTML='<span class="abp-cot-q">'+escHtml(cot.quote)+'</span>';
+      ctr.appendChild(ctdQ);
+      var ctdF=document.createElement('td');
+      ctdF.innerHTML='<span class="abp-cot-d">'+escHtml(cot.fecha)+'</span>';
+      ctr.appendChild(ctdF);
+      var ctdDesc=document.createElement('td');
+      ctdDesc.style.whiteSpace='normal';ctdDesc.style.maxWidth='220px';
+      ctdDesc.innerHTML='<span class="abp-cot-d">'+escHtml(cot.desc||'—')+'</span>';
+      ctr.appendChild(ctdDesc);
+      var ctdQty=document.createElement('td');
+      ctdQty.innerHTML='<span class="abp-cot-d">'+escHtml(cot.qty||'—')+'</span>';
+      ctr.appendChild(ctdQty);
+      var ctdP=document.createElement('td');
+      ctdP.innerHTML='<span class="abp-cot-p">'+escHtml(cot.price||'—')+'</span>';
+      ctr.appendChild(ctdP);
+      var ctdCur2=document.createElement('td');ctr.appendChild(ctdCur2);
+      var ctdExt=document.createElement('td');
+      ctdExt.innerHTML='<span class="abp-cot-d">Ext: '+escHtml(cot.extPrice||'—')+'</span>';
+      ctr.appendChild(ctdExt);
+      var ctdLT=document.createElement('td');ctdLT.colSpan=2;
+      ctdLT.innerHTML='<span class="abp-cot-lt">⏱ '+escHtml(cot.leadTime||'—')+'</span>';
+      ctr.appendChild(ctdLT);
+      var ctdPvp2=document.createElement('td');ctr.appendChild(ctdPvp2);
+      var ctdTrm2=document.createElement('td');ctr.appendChild(ctdTrm2);
+      var ctdCop2=document.createElement('td');ctr.appendChild(ctdCop2);
+      var ctdNotes=document.createElement('td');
+      var inpNotes=document.createElement('input');
+      inpNotes.type='text';inpNotes.className='abp-ni';
+      inpNotes.value=cot.notes;inpNotes.placeholder='Notas...';
+      inpNotes.title='Nota local (solo esta sesión)';
+      inpNotes.onchange=function(){cot.notes=this.value;};
+      ctdNotes.appendChild(inpNotes);ctr.appendChild(ctdNotes);
+
+      document.getElementById('abp-tb').appendChild(ctr);
+    })(sorted[ci]);
   }
 }
 
