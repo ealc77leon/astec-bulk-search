@@ -9,7 +9,7 @@ javascript: (function () {
   var cotDB = {};        // { 'PARTNUMBER': [ {quote,fecha,qty,price,leadtime,notes}, ...] }
   var cotDBLoaded = false;
   var globalFactor = 1.3;
-  var globalUtilidad = 0.7;
+  var globalUtilidad = 0.8;
   var globalTRM = 4000;
   var selectedRows = new Set();
 
@@ -79,8 +79,8 @@ javascript: (function () {
     '<span>Importaciones (def. 1.3)</span>' +
     '&nbsp;&nbsp;&nbsp;' +
     '<label>Utilidad:</label>' +
-    '<input id="abp-guv" type="number" step="0.01" min="0.01" max="1" value="0.7">' +
-    '<span>Margen (def. 0.7 = 30%)</span>' +
+    '<input id="abp-guv" type="number" step="0.01" min="0.01" max="1" value="0.8">' +
+    '<span>Margen (def. 0.8 = 20%)</span>' +
     '&nbsp;&nbsp;&nbsp;' +
     '<label>TRM:</label>' +
     '<input id="abp-gtrm" type="number" step="1" min="1" value="4000" class="wide">' +
@@ -651,3 +651,4 @@ javascript: (function () {
 })();
 
 // prueba git - 2
+
