@@ -630,13 +630,14 @@ javascript: (function () {
   // Exportar CSV
   document.getElementById('abp-csv').onclick = function () {
     var sep = ';';
-    var header = [asTextCell('Buscado'), asTextCell('Part Number'), csvCell('Product Line'), csvCell('Description'), csvCell('Qty On Hand'), csvCell('List Price'), csvCell('Currency'), csvCell('Dealer Net'), csvCell('Factor'), csvCell('Utilidad'), csvCell('PVP'), csvCell('TRM'), csvCell('PVP COP'), csvCell('Weight')];
+    var today = new Date().toISOString().slice(0, 10);
+    var header = [asTextCell('Date'), asTextCell('Buscado'), asTextCell('Part Number'), csvCell('Description'), csvCell('Currency'), csvCell('List Price'), csvCell('Dealer Net'), csvCell('Qty On Hand'), csvCell('Factor'), csvCell('Utilidad'), csvCell('PVP'), csvCell('TRM'), csvCell('PVP COP'), csvCell('Weight')];
     function numCell(v) { return typeof v === 'number' ? String(v).replace('.', ',') : csvCell(v || ''); }
     var rows = R.filter(function (r) { return !r._noResult && !r._error && r.partnum; }).map(function (r) {
       var pvp = calcPVP(r.price, r.factor, r.utilidad);
       var dn = calcDealerNet(r.price);
       var pvpcop = calcPVPCOP(r.price, r.factor, r.utilidad, r.trm);
-      return [asTextCell(r.searched || ''), asTextCell(r.partnum || ''), csvCell(r.line || ''), csvCell(r.desc || ''), numCell(r.qty), numCell(r.price), csvCell(r.currency || ''), numCell(dn), String(r.factor).replace('.', ','), String(r.utilidad).replace('.', ','), numCell(pvp), String(r.trm).replace('.', ','), numCell(pvpcop), numCell(r.weight)];
+      return [asTextCell(today), asTextCell(r.searched || ''), asTextCell(r.partnum || ''), csvCell(r.desc || ''), csvCell(r.currency || ''), numCell(r.price), numCell(dn), numCell(r.qty), String(r.factor).replace('.', ','), String(r.utilidad).replace('.', ','), numCell(pvp), String(r.trm).replace('.', ','), numCell(pvpcop), numCell(r.weight)];
     });
     var csv = 'sep=;\r\n' + [header].concat(rows).map(function (r) { return r.join(sep); }).join('\r\n');
     var b = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
