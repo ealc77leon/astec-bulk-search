@@ -246,9 +246,22 @@ javascript: (function () {
     return Math.round(pvpN * t);
   }
 
-  function getTableText() { return Array.from(document.querySelectorAll('.dt-scroll-body tbody tr')).map(function (r) { return r.innerText.trim(); }).join('|'); }
-  function isTableEmpty() { var rows = document.querySelectorAll('.dt-scroll-body tbody tr'); if (rows.length === 0) return true; if (rows.length === 1 && rows[0].innerText.trim().toLowerCase().indexOf('no data') > -1) return true; return false; }
-  function isTableNoResults() { var rows = document.querySelectorAll('.dt-scroll-body tbody tr'); if (rows.length === 0) return true; if (rows.length === 1) { var txt = rows[0].innerText.trim().toLowerCase(); if (txt.indexOf('no data') > -1 || txt.indexOf('no results') > -1) return true; } return false; }
+  // El portal migrado ya no siempre usa la clase .dt-scroll-body. Identificamos
+  // la tabla por su encabezado, que es estable entre ambas versiones del portal.
+  function getResultsTable() {
+    var oldTable = document.querySelector('.dt-scroll-body table');
+    if (oldTable) return oldTable;
+    var tables = document.querySelectorAll('table');
+    for (var i = 0; i < tables.length; i++) {
+      var header = (tables[i].querySelector('thead') || tables[i]).innerText || '';
+      if (/part\s*number/i.test(header) && /list\s*price/i.test(header)) return tables[i];
+    }
+    return null;
+  }
+  function getResultRows() { var table = getResultsTable(); return table ? table.querySelectorAll('tbody tr') : []; }
+  function getTableText() { return Array.from(getResultRows()).map(function (r) { return r.innerText.trim(); }).join('|'); }
+  function isTableEmpty() { var rows = getResultRows(); if (rows.length === 0) return true; if (rows.length === 1 && rows[0].innerText.trim().toLowerCase().indexOf('no data') > -1) return true; return false; }
+  function isTableNoResults() { var rows = getResultRows(); if (rows.length === 0) return true; if (rows.length === 1) { var txt = rows[0].innerText.trim().toLowerCase(); if (txt.indexOf('no data') > -1 || txt.indexOf('no results') > -1) return true; } return false; }
   async function waitEmpty() { for (var i = 0; i < 30; i++) { await sl(300); if (isTableEmpty()) return; } }
   async function waitStable(ref) {
     var prev = ''; var sameCount = 0; var noDataCount = 0;
@@ -262,7 +275,7 @@ javascript: (function () {
 
   function readResults(ref) {
     var results = [];
-    var rows = document.querySelectorAll('.dt-scroll-body tbody tr');
+    var rows = getResultRows();
     for (var i = 0; i < rows.length; i++) {
       var c = rows[i].querySelectorAll('td');
       if (c.length < 6) continue;
