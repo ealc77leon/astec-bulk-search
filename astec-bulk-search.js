@@ -274,6 +274,20 @@ javascript: (function () {
     }
   }
 
+  // Espera el dato que realmente necesitamos, en vez de confiar en el estado
+  // transitorio de DataTables ("No data" puede permanecer durante la carga).
+  async function waitForResults(ref) {
+    for (var i = 0; i < 150; i++) {
+      var matches = readResults(ref);
+      if (matches.length) {
+        await sl(500); // permite que se terminen de pintar variantes
+        return readResults(ref);
+      }
+      await sl(400);
+    }
+    return [];
+  }
+
   function readResults(ref) {
     var results = [];
     var rows = getResultRows();
@@ -620,8 +634,8 @@ javascript: (function () {
         prog.innerHTML = 'Limpiando... <span style="color:#64748b">' + ref + '</span>';
         sv(inp, ''); await waitEmpty(); await sl(300);
         prog.innerHTML = 'Buscando ' + (i + 1) + '/' + parts.length + ': <span style="color:#f97316">' + ref + '</span>';
-        sv(inp, ref); await waitStable(ref);
-        addRows(i + 1, ref, readResults(ref));
+        sv(inp, ref);
+        addRows(i + 1, ref, await waitForResults(ref));
         renderTable();
         var tb2 = document.getElementById('abp-tb');
         if (tb2.lastChild) tb2.lastChild.scrollIntoView({ block: 'nearest' });
