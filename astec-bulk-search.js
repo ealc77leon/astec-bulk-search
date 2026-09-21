@@ -264,10 +264,11 @@ javascript: (function () {
   function isTableNoResults() { var rows = getResultRows(); if (rows.length === 0) return true; if (rows.length === 1) { var txt = rows[0].innerText.trim().toLowerCase(); if (txt.indexOf('no data') > -1 || txt.indexOf('no results') > -1) return true; } return false; }
   async function waitEmpty() { for (var i = 0; i < 30; i++) { await sl(300); if (isTableEmpty()) return; } }
   async function waitStable(ref) {
-    var prev = ''; var sameCount = 0; var noDataCount = 0;
-    for (var i = 0; i < 30; i++) {
+    var prev = ''; var sameCount = 0;
+    // El portal actual deja "No data" visible mientras la petición está en
+    // curso. No debe considerarse un resultado negativo prematuro.
+    for (var i = 0; i < 75; i++) {
       await sl(400); var curr = getTableText();
-      if (isTableNoResults()) { noDataCount++; if (noDataCount >= 5) return; } else { noDataCount = 0; }
       if (curr === prev && curr !== '' && curr.toLowerCase().indexOf('no data') === -1 && curr.toUpperCase().indexOf(ref.toUpperCase()) > -1) { sameCount++; if (sameCount >= 2) return; } else { sameCount = 0; }
       prev = curr;
     }
